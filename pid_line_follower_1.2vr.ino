@@ -7,18 +7,18 @@ int b=LOW;  // blackline
 int w=HIGH;   // whiteline
 
 //Initial Speed of Motor
-int initial_motor_speed = 90;
+int initial_motor_speed = 105;
 
 // Initial Values of Sensors
 int sensor[5] = {0, 0, 0, 0, 0};
 
 
 // PID Constants
-float Kp = 35.86;
-float Ki = 0.13;
-float Kd = 9.088; //9.088
+float Kp = 35.96; //35.86
+float Ki = 0.21; //0.13
+float Kd = 9.074; //9.088
 
-float error = 0, P = 0, I = 0, D = 0, PID_value , bob = 0;
+float error = 0, P = 0, I = 0, D = 0, PID_value = 0;
 float previous_error = 0, previous_I = 0;
 
 int flag = 0;
@@ -62,7 +62,8 @@ d5 left
 d6 left most
  
  */
-
+  Serial.println(error);
+  Serial.println(" ");
   /*
     Serial.print(sensor[0]);
     Serial.print("\t");
@@ -95,7 +96,7 @@ d6 left most
  }
    if(leftSensorL1==w  && leftSensorL2==b && middleSensor==b && rightSensorR1==b  && rightSensorR2==b  )//left
  {  
-  error = -2;
+  error = -3; /*****/
  }
    if(leftSensorL1==b  && leftSensorL2==w && middleSensor==w && rightSensorR1==b  && rightSensorR2==b  )//left  /// CHANGES
  {
@@ -116,6 +117,16 @@ if(leftSensorL1==b  && leftSensorL2==w && middleSensor==w && rightSensorR1==w  &
    error = 0;
 
 }
+if(leftSensorL1==w  && leftSensorL2==b && middleSensor==b && rightSensorR1==b  && rightSensorR2==w  )//forward
+ {
+   error = 0;
+
+}
+if(leftSensorL1==w  && leftSensorL2==w && middleSensor==b && rightSensorR1==w  && rightSensorR2==w  )//forward
+ {
+   error = 0;
+
+}
   if(leftSensorL1==b  && leftSensorL2==b && middleSensor==b && rightSensorR1==w  && rightSensorR2==b  )//right
  {
   error = 1;
@@ -126,7 +137,7 @@ if(leftSensorL1==b  && leftSensorL2==w && middleSensor==w && rightSensorR1==w  &
  }
  if(leftSensorL1==b  && leftSensorL2==b && middleSensor==b && rightSensorR1==b  && rightSensorR2==w  )//right
  {
-  error = 2;
+  error = 3; /*****/
  }
   if(leftSensorL1==b  && leftSensorL2==b && middleSensor==b && rightSensorR1==w  && rightSensorR2==w  )//right
  {
@@ -147,7 +158,7 @@ if(leftSensorL1==b  && leftSensorL2==w && middleSensor==w && rightSensorR1==w  &
  }
 if(leftSensorL1==w  && leftSensorL2==w && middleSensor==w && rightSensorR1==w  && rightSensorR2==w  )//hard left*****
  {
- error= -25;
+ error= 30;
  }
  if(leftSensorL1==w  && leftSensorL2==b && middleSensor==w && rightSensorR1==w  && rightSensorR2==w  )//hard left*****
  {
@@ -170,12 +181,10 @@ if(leftSensorL1==w  && leftSensorL2==w && middleSensor==w && rightSensorR1==w  &
  // important conditions
 if(leftSensorL1==w  && leftSensorL2==w && middleSensor==w && rightSensorR1==w  && rightSensorR2==w  )//hard left*****
  {
- error= -25;
+ error= 30;
  }
  
   forward();
-
-
 
 } 
 
@@ -193,19 +202,10 @@ void calculate_pid()
 
 void motor_control()
 {
-       if(error==0){
-    while(1){
-      initial_motor_speed +=1;
-    }
-  } else initial_motor_speed=80;
-  Serial.print(error);
-  Serial.print(" ");
-  Serial.print(initial_motor_speed);
-  Serial.println(" ");
   // Calculating the effective motor speed:
   int left_motor_speed = initial_motor_speed - PID_value;
   int right_motor_speed = initial_motor_speed + PID_value;
- 
+
   // The motor speed should not exceed the max PWM value
   left_motor_speed = constrain(left_motor_speed, -255, 255);
   right_motor_speed = constrain(right_motor_speed, -255, 255);
