@@ -35,6 +35,8 @@ float Kd = 9.074; //9.088
 
 float error = 0, P = 0, I = 0, D = 0, PID_value = 0;
 float previous_error = 0, previous_I = 0;
+byte current_sensor_byte = 0; // Global to share with Serial
+int left_motor_speed = 0, right_motor_speed = 0;
 
 int flag = 0;
 
@@ -68,9 +70,47 @@ void loop()
   read_sensor_values();
   calculate_pid();
  motor_control();
+
+ // New: Handle communication with ESP32
+  send_telemetry();
+  check_for_tuning();
  }
 
- void read_sensor_values()
+// --- NEW FUNCTION: Send data for Website Graphing ---
+void send_telemetry() {
+  // Format: error,sensor_byte,left_speed,right_speed,initial_speed
+  // This CSV format is easy for Javascript to split using .split(',')
+  Serial.print(error); Serial.print(",");
+  Serial.print(current_sensor_byte); Serial.print(",");
+  Serial.print(left_motor_speed); Serial.print(",");
+  Serial.print(right_motor_speed); Serial.print(",");
+  Serial.println(initial_motor_speed);
+}
+
+// --- NEW FUNCTION: Receive PID/Speed changes from Website ---
+void check_for_tuning() {
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    // Check if the string starts with 'P' (our custom protocol)
+    // Example format: P35.96,I0.21,D9.07,S105
+    if (input.startsWith("P")) {
+       // Using simple parsing to avoid memory heavy sscanf
+       int comma1 = input.indexOf(',');
+       int comma2 = input.indexOf(',', comma1 + 1);
+       int comma3 = input.indexOf(',', comma2 + 1);
+
+       Kp = input.substring(1, comma1).toFloat();
+       Ki = input.substring(comma1 + 2, comma2).toFloat(); // +2 skips the 'I'
+       Kd = input.substring(comma2 + 2, comma3).toFloat(); // +2 skips the 'D'
+       initial_motor_speed = input.substring(comma3 + 2).toInt(); // +2 skips the 'S'
+       
+       // Reset I to prevent integral windup after tuning
+       I = 0; 
+    }
+  }
+}
+
+void read_sensor_values()
 {
   // 1. Read all sensors into an array
   int s[8];
