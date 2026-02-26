@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LFR Real-Time Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #333; width: 300px; }
+        .chart-container { width: 80%; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 10px; }
+        input { width: 80px; padding: 5px; margin: 5px; background: #333; color: white; border: 1px solid #555; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        button:hover { background: #0056b3; }
+        .status { color: #00ff00; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>LFR Real-Time Dashboard</h1>
+    <button onclick="connectSerial()">Connect to LFR (Bluetooth COM)</button>
+    <p id="status" class="status">Disconnected</p>
+
+    <div class="chart-container">
+        <canvas id="errorChart"></canvas>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h3>PID Tuning</h3>
+            Kp: <input type="number" id="kp" value="35.96" step="0.01"><br>
+            Ki: <input type="number" id="ki" value="0.21" step="0.01"><br>
+            Kd: <input type="number" id="kd" value="9.07" step="0.01"><br>
+            Speed: <input type="number" id="speed" value="105"><br><br>
+            <button onclick="sendTuning()">Update Arduino</button>
+        </div>
+
+        <div class="card">
+            <h3>Live Stats</h3>
+            <p>Error: <span id="val_error">0</span></p>
+            <p>L-Motor: <span id="val_left">0</span></p>
+            <p>R-Motor: <span id="val_right">0</span></p>
+        </div>
+    </div>
+
+<script>
+let port, reader, writer;
+const ctx = document.getElementById('errorChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'LFR Error (Y-Direction)',
+            data: [],
+            borderColor: '#00ff00',
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4
+        }]
+    },
+    options: { scales: { y: { min: -10, max: 10 } } }
+});
+
+async function connectSerial() {
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 9600 });
+        document.getElementById('status').innerText = "Connected!";
+        
+        readLoop();
+    } catch (e) { console.error(e); }
+}
+
+async function readLoop() {
+    const textDecoder = new TextDecoderStream();
+    const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+    reader = textDecoder.readable.getReader();
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) {
+            processData(value);
+        }
+    }
+}
+
+function processData(data) {
+    // Expected format: error,sensor_byte,left_speed,right_speed,initial_speed
+    const parts = data.split(',');
+    if (parts.length >= 4) {
+        const errorVal = parseFloat(parts[0]);
+        const leftSpd = parts[2];
+        const rightSpd = parts[3];
+
+        document.getElementById('val_error').innerText = errorVal;
+        document.getElementById('val_left').innerText = leftSpd;
+        document.getElementById('val_right').innerText = rightSpd;
+
+        // Update Chart
+        chart.data.labels.push("");
+        chart.data.datasets[0].data.push(errorVal);
+        if (chart.data.labels.length > 50) {
+            chart.data.labels.shift();
+            chart.data.datasets[0].data.shift();
+        }
+        chart.update('none'); // Update without animation for speed
+    }
+}
+
+async function sendTuning() {
+    const kp = document.getElementById('kp').value;
+    const ki = document.getElementById('ki').value;
+    const kd = document.getElementById('kd').value;
+    const speed = document.getElementById('speed').value;
+
+    const command = `P${kp},I${ki},D${kd},S${speed}\n`;
+    
+    const encoder = new TextEncoder();
+    const writer = port.writable.getWriter();
+    await writer.write(encoder.encode(command));
+    writer.releaseLock();
+    alert("Sent: " + command);
+}
+</script>
+</body>
+</html>
