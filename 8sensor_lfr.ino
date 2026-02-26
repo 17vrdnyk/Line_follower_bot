@@ -1,4 +1,4 @@
-
+unsigned long lastSendTime = 0;
 
 int leftSensorL1 , leftSensorL2 ,leftSensorL3, leftSensorL4, rightSensorR4, rightSensorR3, rightSensorR2, rightSensorR1;
 int w = HIGH; // blackline, if "Inverted" (White line on Black background), you only have to change one line of code: int w = LOW;
@@ -25,18 +25,21 @@ const int ENB = 9; // PWM Pin
 const int IN3 = A2;
 const int IN4 = A3;
 
-//Initial Speed of Motor
-int initial_motor_speed = 105;
+// --- Shared Global Variables for Telemetry ---
+float error = 0;              // Updated in read_sensor_values()
+byte sensor_byte_binary = 0;  // Updated in read_sensor_values()
+int left_motor_speed = 0;     // Updated in motor_control()
+int right_motor_speed = 0;    // Updated in motor_control()
+int initial_motor_speed = 105; //Initial Speed of Motor
 
 // PID Constants
 float Kp = 35.96; //35.86
 float Ki = 0.21; //0.13
 float Kd = 9.074; //9.088
 
-float error = 0, P = 0, I = 0, D = 0, PID_value = 0;
+float P = 0, I = 0, D = 0, PID_value = 0;
 float previous_error = 0, previous_I = 0;
 byte current_sensor_byte = 0; // Global to share with Serial
-int left_motor_speed = 0, right_motor_speed = 0;
 
 int flag = 0;
 
@@ -72,19 +75,24 @@ void loop()
  motor_control();
 
  // New: Handle communication with ESP32
-  send_telemetry();
   check_for_tuning();
+  // Only send to website every 50 milliseconds
+  if (millis() - lastSendTime > 50) {
+    send_telemetry();
+    lastSendTime = millis();
+  }
  }
 
 // --- NEW FUNCTION: Send data for Website Graphing ---
 void send_telemetry() {
   // Format: error,sensor_byte,left_speed,right_speed,initial_speed
   // This CSV format is easy for Javascript to split using .split(',')
-  Serial.print(error); Serial.print(",");
-  Serial.print(current_sensor_byte); Serial.print(",");
-  Serial.print(left_motor_speed); Serial.print(",");
-  Serial.print(right_motor_speed); Serial.print(",");
-  Serial.println(initial_motor_speed);
+  // We send a comma-separated string: error, sensor_byte, L_speed, R_speed, Initial_speed
+  Serial.print(error);                Serial.print(",");
+  Serial.print(sensor_byte_binary);   Serial.print(","); // Sends as a decimal number (0-255)
+  Serial.print(left_motor_speed);     Serial.print(",");
+  Serial.print(right_motor_speed);    Serial.print(",");
+  Serial.println(initial_motor_speed); // println adds the '\n' which tells ESP32 the line is done
 }
 
 // --- NEW FUNCTION: Receive PID/Speed changes from Website ---
@@ -125,31 +133,31 @@ void read_sensor_values()
 
   // 2. Convert to Bitmask (a single number representing the pattern)
   // Example: 00011000 means the middle two sensors are on the line
-  byte sensor_byte = 0;
+  sensor_byte_binary = 0;
   for (int i = 0; i < 8; i++) {
     if (s[i] == w) {
-      sensor_byte |= (1 << (7 - i)); 
+      sensor_byte_binary |= (1 << (7 - i)); 
     }
   }
 
   // 3. HYBRID LOGIC
   
   // CASE A: All sensors see the line (Crossroad / T-Junction)
-  if (sensor_byte == 0b11111111) {
+  if (sensor_byte_binary == 0b11111111) {
     error = 0; 
     // You could also add code here to stop or count a lap
   }
   
   // CASE B: All sensors see white (Off the track)
-  else if (sensor_byte == 0b00000000) {
+  else if (sensor_byte_binary == 0b00000000) {
     // Memory logic: Keep turning in the last known direction to find the line
     if (previous_error < 0) error = -10; 
     else if (previous_error > 0) error = 10;
   }
 
   // CASE C: Sharp 90-degree turns (Optional Pattern Matching)
-  else if (sensor_byte == 0b11100000) { error = -7; } // Sharp Left
-  else if (sensor_byte == 0b00000111) { error = 7; }  // Sharp Right
+  else if (sensor_byte_binary == 0b11100000) { error = -7; } // Sharp Left
+  else if (sensor_byte_binary == 0b00000111) { error = 7; }  // Sharp Right
 
   // CASE D: Normal Line Following (Weighted Average)
   else {
