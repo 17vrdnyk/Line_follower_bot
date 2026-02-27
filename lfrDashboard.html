@@ -86,25 +86,32 @@ async function readLoop() {
 }
 
 function processData(data) {
-    // Expected format: error,sensor_byte,left_speed,right_speed,initial_speed
-    const parts = data.split(',');
+    // Clean up the data (remove whitespace/newlines)
+    const cleanData = data.trim();
+    if (!cleanData) return;
+
+    const parts = cleanData.split(',');
+    
+    // We expect at least 5 parts: error, sensor, left, right, initial
     if (parts.length >= 4) {
         const errorVal = parseFloat(parts[0]);
         const leftSpd = parts[2];
         const rightSpd = parts[3];
 
-        document.getElementById('val_error').innerText = errorVal;
-        document.getElementById('val_left').innerText = leftSpd;
-        document.getElementById('val_right').innerText = rightSpd;
+        if (!isNaN(errorVal)) {
+            document.getElementById('val_error').innerText = errorVal;
+            document.getElementById('val_left').innerText = leftSpd;
+            document.getElementById('val_right').innerText = rightSpd;
 
-        // Update Chart
-        chart.data.labels.push("");
-        chart.data.datasets[0].data.push(errorVal);
-        if (chart.data.labels.length > 50) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+            chart.data.labels.push("");
+            chart.data.datasets[0].data.push(errorVal);
+
+            if (chart.data.labels.length > 50) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+            chart.update('none'); 
         }
-        chart.update('none'); // Update without animation for speed
     }
 }
 
