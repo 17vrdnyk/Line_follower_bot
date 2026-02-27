@@ -31,7 +31,7 @@ void loop() {
     String dataFromUno = Serial2.readStringUntil('\n');
     if (dataFromUno.length() > 0) {
       SerialBT.println(dataFromUno); // Forward to Laptop via Bluetooth
-      Serial.println("To Web: " + dataFromUno); // Debug monitor
+      Serial.println("To Web: " + dataFromUno + "\n"); // Debug monitor
     }
   }
 
@@ -40,7 +40,7 @@ void loop() {
     String commandFromWeb = SerialBT.readStringUntil('\n');
     if (commandFromWeb.length() > 0) {
       Serial2.println(commandFromWeb); // Forward to Arduino Uno
-      Serial.println("To Uno: " + commandFromWeb); // Debug monitor
+      Serial.println("To Uno: " + commandFromWeb + "\n"); // Debug monitor
     }
   }
 }
