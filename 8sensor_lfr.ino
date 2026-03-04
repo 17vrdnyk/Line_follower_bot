@@ -3,6 +3,9 @@ unsigned long lastSendTime = 0;
 int leftSensorL1 , leftSensorL2 ,leftSensorL3, leftSensorL4, rightSensorR4, rightSensorR3, rightSensorR2, rightSensorR1;
 int w = HIGH; // blackline, if "Inverted" (White line on Black background), you only have to change one line of code: int w = LOW;
 
+unsigned long blackBoxTimer = 0;   // To track how long we see all black
+unsigned long whiteGapTimer = 0;   // To track how long we see all white
+bool potentialGap = false;         // To flag if we are in a "peek" state
 
 // --- Pin Definitions ---
 // Sensors (Using Digital GPIOs)
@@ -142,22 +145,63 @@ void read_sensor_values()
 
   // 3. HYBRID LOGIC
   
-  // CASE A: All sensors see the line (Crossroad / T-Junction)
+  // --- CASE A: All sensors see the line (Crossroad or Black Box) ---
   if (sensor_byte_binary == 0b11111111) {
-    error = 0; 
-    // You could also add code here to stop or count a lap
+    if (blackBoxTimer == 0) blackBoxTimer = millis(); // Start timing
+    
+    // If we've seen all black for more than 1000ms, it's a stop box
+    if (millis() - blackBoxTimer > 1000) { 
+      stop_bot(); 
+      while(1); // Permanent stop
+    }
+    error = 0; // Otherwise, treat as crossroad and go straight ****important*****
+  } 
+  else {
+    blackBoxTimer = 0; // Reset if we see anything else
   }
   
-  // CASE B: All sensors see white (Off the track)
-  else if (sensor_byte_binary == 0b00000000) {
-    // Memory logic: Keep turning in the last known direction to find the line
-    if (previous_error < 0) error = -10; 
-    else if (previous_error > 0) error = 10;
+  // CASE B: All sensors see white (Gap or Off Track)
+  if (sensor_byte_binary == 0b00000000) {
+    blackBoxTimer = 0; // Not a black box
+    
+    if (!potentialGap) {
+      whiteGapTimer = millis();
+      potentialGap = true;
+    }
+
+    // Peek Forward Phase (750ms)  *** important ***
+    if (millis() - whiteGapTimer < 1000) {
+      error = 0; 
+    } 
+    // Out of Time? Hard Turn Phase
+    else {
+      if (previous_error < 0) error = -9; 
+      else if (previous_error > 0) error = 9;
+    }
   }
 
   // CASE C: Sharp 90-degree turns (Optional Pattern Matching)
   else if (sensor_byte_binary == 0b11100000) { error = -7; } // Sharp Left
   else if (sensor_byte_binary == 0b00000111) { error = 7; }  // Sharp Right
+
+  // CASE E: Sharp exceptional turns (Optional Pattern Matching)
+  else if (sensor_byte_binary == 0b01100000) { error = -5; } // mild Left
+  else if (sensor_byte_binary == 0b00000110) { error = 5; }  // mild Right
+
+  else if (sensor_byte_binary == 0b00110000) { error = -3; } // slight Left
+  else if (sensor_byte_binary == 0b00001100) { error = 3; }  // slight Right
+
+  else if (sensor_byte_binary == 0b0111000) { error = -5; } // mild Left
+  else if (sensor_byte_binary == 0b00001110) { error = 5; }  // mild Right
+
+  else if (sensor_byte_binary == 0b11110000) { error = -9; } // Sharp Left
+  else if (sensor_byte_binary == 0b00001111) { error = 9; }  // Sharp Right
+
+  else if (sensor_byte_binary == 0b01101000) { error = -3; } // Sharp Left
+  else if (sensor_byte_binary == 0b00010110) { error = 3; }  // Sharp Right
+
+  else if (sensor_byte_binary == 0b01111000) { error = -5; } // mild Left
+  else if (sensor_byte_binary == 0b00011110) { error = 5; }  // mild Right
 
   // CASE D: Normal Line Following (Weighted Average)
   else {
