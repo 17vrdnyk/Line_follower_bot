@@ -147,31 +147,34 @@ void read_sensor_values()
   
   // --- CASE A: All sensors see the line (Crossroad or Black Box) ---
   if (sensor_byte_binary == 0b11111111) {
-    if (blackBoxTimer == 0) blackBoxTimer = millis(); // Start timing
+    if (blackBoxTimer == 0) blackBoxTimer = millis(); // Start timing only once
     
-    // If we've seen all black for more than 1000ms, it's a stop box
+    // Check if we've been on black long enough to stop
     if (millis() - blackBoxTimer > 1000) { 
       stop_bot(); 
-      while(1); // Permanent stop
+      while(1); // Stop forever
     }
-    error = 0; // Otherwise, treat as crossroad and go straight ****important*****
-  } 
-  else {
-    blackBoxTimer = 0; // Reset if we see anything else
+    
+    error = 0; // If under 1000ms, just treat as a crossroad (go straight)
+    
+    // IMPORTANT: Since we ARE in a black box, we don't reset the timer here.
+    // We also reset the GAP flags just in case we came from a gap.
+    potentialGap = false;
+    whiteGapTimer = 0;
   }
   
   // CASE B: All sensors see white (Gap or Off Track)
-  if (sensor_byte_binary == 0b00000000) {
-    blackBoxTimer = 0; // Not a black box
+  // --- CASE B: All sensors see white (Gap or Lost Line) ---
+  else if (sensor_byte_binary == 0b00000000) {
+    blackBoxTimer = 0; // <--- RESET BlackBox timer here (because we aren't seeing black)
     
     if (!potentialGap) {
       whiteGapTimer = millis();
       potentialGap = true;
     }
 
-    // Peek Forward Phase (750ms)  *** important ***
     if (millis() - whiteGapTimer < 1000) {
-      error = 0; 
+      error = 0; // "Peek" forward
     } 
     // Out of Time? Hard Turn Phase
     else {
@@ -205,6 +208,11 @@ void read_sensor_values()
 
   // CASE D: Normal Line Following (Weighted Average)
   else {
+    // Reset ALL flags because we are safely on a line pattern
+    blackBoxTimer = 0;
+    potentialGap = false;
+    whiteGapTimer = 0;
+
     float total_weight = 0;
     int active_sensors = 0;
     
