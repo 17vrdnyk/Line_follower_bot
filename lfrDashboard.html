@@ -11,14 +11,15 @@
         input { width: 80px; padding: 5px; margin: 5px; background: #333; color: white; border: 1px solid #555; }
         button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
         button:hover { background: #0056b3; }
-        .status { color: #00ff00; margin-bottom: 20px; }
+        #status { color: #ff4444; margin-bottom: 20px; font-weight: bold; }
+        .connected { color: #00ff00 !important; }
     </style>
 </head>
 <body>
 
-    <h1>LFR Real-Time Dashboard</h1>
-    <button onclick="connectSerial()">Connect to LFR (Bluetooth COM)</button>
-    <p id="status" class="status">Disconnected</p>
+    <h1>LFR Wi-Fi Dashboard (AP Mode)</h1>
+    <button onclick="initWebSocket()">Connect to LFR (Wi-Fi)</button>
+    <p id="status">Status: Disconnected</p>
 
     <div class="chart-container">
         <canvas id="errorChart"></canvas>
@@ -43,7 +44,9 @@
     </div>
 
 <script>
-let port, reader, writer;
+let gateway = `ws://192.168.4.1/ws`;
+let websocket;
+
 const ctx = document.getElementById('errorChart').getContext('2d');
 const chart = new Chart(ctx, {
     type: 'line',
@@ -55,44 +58,40 @@ const chart = new Chart(ctx, {
             borderColor: '#00ff00',
             borderWidth: 2,
             fill: false,
-            tension: 0.4
+            tension: 0.2
         }]
     },
-    options: { scales: { y: { min: -10, max: 10 } } }
+    options: { 
+        animation: false,
+        scales: { y: { min: -10, max: 10, grid: { color: '#333' } } } 
+    }
 });
 
-async function connectSerial() {
-    try {
-        port = await navigator.serial.requestPort();
-        await port.open({ baudRate: 9600 });
-        document.getElementById('status').innerText = "Connected!";
-        
-        readLoop();
-    } catch (e) { console.error(e); }
+function initWebSocket() {
+    console.log('Trying to open a WebSocket connection...');
+    websocket = new WebSocket(gateway);
+    websocket.onopen = onOpen;
+    websocket.onclose = onClose;
+    websocket.onmessage = onMessage;
 }
 
-async function readLoop() {
-    const textDecoder = new TextDecoderStream();
-    const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
-    reader = textDecoder.readable.getReader();
+function onOpen(event) {
+    document.getElementById('status').innerText = "Status: Connected to LFR";
+    document.getElementById('status').classList.add('connected');
+}
 
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (value) {
-            processData(value);
-        }
-    }
+function onClose(event) {
+    document.getElementById('status').innerText = "Status: Disconnected";
+    document.getElementById('status').classList.remove('connected');
+    setTimeout(initWebSocket, 2000); // Auto-reconnect
+}
+
+function onMessage(event) {
+    processData(event.data);
 }
 
 function processData(data) {
-    // Clean up the data (remove whitespace/newlines)
-    const cleanData = data.trim();
-    if (!cleanData) return;
-
-    const parts = cleanData.split(',');
-    
-    // We expect at least 5 parts: error, sensor, left, right, initial
+    const parts = data.trim().split(',');
     if (parts.length >= 4) {
         const errorVal = parseFloat(parts[0]);
         const leftSpd = parts[2];
@@ -106,7 +105,7 @@ function processData(data) {
             chart.data.labels.push("");
             chart.data.datasets[0].data.push(errorVal);
 
-            if (chart.data.labels.length > 50) {
+            if (chart.data.labels.length > 60) {
                 chart.data.labels.shift();
                 chart.data.datasets[0].data.shift();
             }
@@ -115,19 +114,15 @@ function processData(data) {
     }
 }
 
-async function sendTuning() {
+function sendTuning() {
     const kp = document.getElementById('kp').value;
     const ki = document.getElementById('ki').value;
     const kd = document.getElementById('kd').value;
     const speed = document.getElementById('speed').value;
 
     const command = `P${kp},I${ki},D${kd},S${speed}\n`;
-    
-    const encoder = new TextEncoder();
-    const writer = port.writable.getWriter();
-    await writer.write(encoder.encode(command));
-    writer.releaseLock();
-    alert("Sent: " + command);
+    websocket.send(command);
+    console.log("Sent Tuning: " + command);
 }
 </script>
 </body>
