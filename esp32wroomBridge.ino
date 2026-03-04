@@ -1,46 +1,42 @@
-#include "BluetoothSerial.h"
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
-// Check if Bluetooth is available
-#if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
-#error Bluetooth is not enabled! Please run `make menuconfig` to and enable it
-#endif
+const char* ssid = "LFR_Master_AP";
+const char* password = "12345678";
 
-BluetoothSerial SerialBT;
+AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
 
-// Using Hardware Serial 2 for the Uno
-// ESP32 RX2 = GPIO 16 (Connect to Uno TX via Level Shifter)
-// ESP32 TX2 = GPIO 17 (Connect to Uno RX)
 #define RXD2 16
 #define TXD2 17
 
+void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+  if (type == WS_EVT_DATA) {
+    String command = "";
+    for(size_t i=0; i<len; i++) command += (char)data[i];
+    Serial2.println(command); // Send tuning to Uno
+    Serial.println("To Uno: " + command);
+  }
+}
+
 void setup() {
-  // Serial for Debugging (USB to Laptop)
   Serial.begin(115200);
-  
-  // Serial to Arduino Uno (Matches Uno 9600 baud)
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
-  // Bluetooth Name
-  SerialBT.begin("LFR_Master_Controller"); 
-  Serial.println("ESP32 Started. Pair with 'LFR_Master_Controller' on your laptop.");
+  WiFi.softAP(ssid, password);
+  
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
+  server.begin();
+  
+  Serial.println("AP Started. IP: 192.168.4.1");
 }
 
 void loop() {
-  // 1. DATA FROM UNO -> BLUETOOTH (To Website)
   if (Serial2.available()) {
-    String dataFromUno = Serial2.readStringUntil('\n');
-    if (dataFromUno.length() > 0) {
-      SerialBT.println(dataFromUno); // Forward to Laptop via Bluetooth
-      Serial.println("To Web: " + dataFromUno + "\n"); // Debug monitor
-    }
+    String data = Serial2.readStringUntil('\n');
+    ws.textAll(data); // Broadcast LFR data to all connected web pages
   }
-
-  // 2. DATA FROM BLUETOOTH -> UNO (From Website Tuning)
-  if (SerialBT.available()) {
-    String commandFromWeb = SerialBT.readStringUntil('\n');
-    if (commandFromWeb.length() > 0) {
-      Serial2.println(commandFromWeb); // Forward to Arduino Uno
-      Serial.println("To Uno: " + commandFromWeb + "\n"); // Debug monitor
-    }
-  }
+  ws.cleanupClients();
 }
