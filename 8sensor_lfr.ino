@@ -102,29 +102,21 @@ void send_telemetry() {
 void check_for_tuning() {
   if (Serial.available() > 0) {
     String input = Serial.readStringUntil('\n');
-    input.trim(); // Remove any hidden whitespace or \r
-
+    // Check if the string starts with 'P' (our custom protocol)
+    // Example format: P35.96,I0.21,D9.07,S105
     if (input.startsWith("P")) {
+       // Using simple parsing to avoid memory heavy sscanf
        int comma1 = input.indexOf(',');
        int comma2 = input.indexOf(',', comma1 + 1);
        int comma3 = input.indexOf(',', comma2 + 1);
 
-       // Parsing logic:
-       // P[35.96] , I [0.21] , D [9.07] , S [105]
-       
        Kp = input.substring(1, comma1).toFloat();
-       Ki = input.substring(comma1 + 2, comma2).toFloat(); // Skips ",I"
-       Kd = input.substring(comma2 + 2, comma3).toFloat(); // Skips ",D"
-       initial_motor_speed = input.substring(comma3 + 2).toInt(); // Skips ",S"
-
-       // Reset integral to prevent a sudden jump in motor power
-       I = 0; 
+       Ki = input.substring(comma1 + 2, comma2).toFloat(); // +2 skips the 'I'
+       Kd = input.substring(comma2 + 2, comma3).toFloat(); // +2 skips the 'D'
+       initial_motor_speed = input.substring(comma3 + 2).toInt(); // +2 skips the 'S'
        
-       // Optional: Send a confirmation back to the NodeMCU to see in Serial Monitor
-       Serial.print("Updated-> Kp:"); Serial.print(Kp);
-       Serial.print(" Ki:"); Serial.print(Ki);
-       Serial.print(" Kd:"); Serial.print(Kd);
-       Serial.print(" Speed:"); Serial.println(initial_motor_speed);
+       // Reset I to prevent integral windup after tuning
+       I = 0; 
     }
   }
 }
