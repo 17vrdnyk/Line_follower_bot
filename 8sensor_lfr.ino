@@ -269,15 +269,15 @@ void motor_control()
     if(left_motor_speed>0)
   {
     /*The pin numbers and high, low values might be different depending on your connections */
-    digitalWrite(IN1, HIGH);   
-    digitalWrite(IN2, LOW);
+    digitalWrite(IN3, HIGH);   
+    digitalWrite(IN4, LOW);
     analogWrite(ENA,left_motor_speed);
   }
   else 
   {
     /*The pin numbers and high, low values might be different depending on your connections */
-    digitalWrite(IN1, LOW); 
-    digitalWrite(IN2, HIGH);
+    digitalWrite(IN3, LOW); 
+    digitalWrite(IN4, HIGH);
     analogWrite(ENA, (left_motor_speed));
     //analogWrite(ENA, abs(left_motor_speed));
   }
@@ -286,15 +286,15 @@ void motor_control()
   if(right_motor_speed>0)
   {
     /*The pin numbers and high, low values might be different depending on your connections */
-    digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
     analogWrite(ENB, right_motor_speed );
   }
   else 
   {
     /*The pin numbers and high, low values might be different depending on your connections */
-    digitalWrite(IN3, LOW);
-    digitalWrite(IN4, HIGH);
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
     analogWrite(ENB, (right_motor_speed));
     //analogWrite(ENB, (right_motor_speed));
   }
@@ -308,60 +308,60 @@ void motor_control()
 void forward(int s)
 {
   /*The pin numbers and high, low values might be different depending on your connections */
-  digitalWrite(IN1,HIGH);
-  digitalWrite(IN2,LOW);
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
+  digitalWrite(IN1,HIGH);
+  digitalWrite(IN2,LOW);
   setspeed(s);
   
 }
 void reverse()
 {
   /*The pin numbers and high, low values might be different depending on your connections */
-  digitalWrite(IN1,LOW);
-  digitalWrite(IN2,HIGH);
   digitalWrite(IN3,LOW);
-  digitalWrite(IN4,HIGH); 
+  digitalWrite(IN4,HIGH);
+  digitalWrite(IN1,LOW);
+  digitalWrite(IN2,HIGH); 
 }
 
 void right()
 {
   /*The pin numbers and high, low values might be different depending on your connections */
-  digitalWrite(IN1,LOW);
- digitalWrite(IN2,HIGH);
- digitalWrite(IN3,LOW);
- digitalWrite(IN4,LOW); 
+  digitalWrite(IN3,LOW);
+ digitalWrite(IN4,HIGH);
+ digitalWrite(IN1,LOW);
+ digitalWrite(IN2,LOW); 
 }
 void left()
 {
   /*The pin numbers and high, low values might be different depending on your connections */
-  digitalWrite(IN1,LOW);
-  digitalWrite(IN2,LOW);
   digitalWrite(IN3,LOW);
-  digitalWrite(IN4,HIGH);
+  digitalWrite(IN4,LOW);
+  digitalWrite(IN1,LOW);
+  digitalWrite(IN2,HIGH);
 }
 void sharpRightTurn() 
 {
   /*The pin numbers and high, low values might be different depending on your connections */
- digitalWrite(IN1,LOW);
- digitalWrite(IN2,HIGH);
- digitalWrite(IN3,HIGH);
- digitalWrite(IN4,LOW); 
+ digitalWrite(IN3,LOW);
+ digitalWrite(IN4,HIGH);
+ digitalWrite(IN1,HIGH);
+ digitalWrite(IN2,LOW); 
 }
 void sharpLeftTurn() 
 {
-  digitalWrite(IN1,HIGH);
-  digitalWrite(IN2,LOW);
-  digitalWrite(IN3,LOW);
-  digitalWrite(IN4,HIGH);
+  digitalWrite(IN3,HIGH);
+  digitalWrite(IN4,LOW);
+  digitalWrite(IN1,LOW);
+  digitalWrite(IN2,HIGH);
 }
 void stop_bot()
 {
   /*The pin numbers and high, low values might be different depending on your connections */
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, LOW);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
 }
 
 void setspeed(int Speed)
