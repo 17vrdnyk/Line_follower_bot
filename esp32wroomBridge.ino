@@ -13,14 +13,25 @@ AsyncWebSocket ws("/ws");
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_DATA) {
+    // 1. Turn LED ON (Start of receiving data)
+    digitalWrite(LED_BUILTIN, LOW);
+    
     String command = "";
     for(size_t i=0; i<len; i++) command += (char)data[i];
     Serial2.println(command); // Send tuning to Uno
     Serial.println("To Uno: " + command);
+
+    // 2. Simple "Blink" effect
+    // We use a tiny delay so your eyes can actually see the flash
+    delay(50); 
+    digitalWrite(LED_BUILTIN, HIGH); // Turn LED OFF
   }
 }
 
 void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH); // Start with LED OFF (Active Low)
+  
   Serial.begin(115200);
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
