@@ -20,11 +20,11 @@ const int PIN_R1 = 8; // Right Outer (VN pin)
 
 // Motors
 // Left Motor
-const int ENA = 10; // PWM Pin
+const int ENA = 9; // PWM Pin
 const int IN1 = A0;
 const int IN2 = A1;
 // Right Motor
-const int ENB = 9; // PWM Pin
+const int ENB = 10; // PWM Pin
 const int IN3 = A2;
 const int IN4 = A3;
 
@@ -33,7 +33,7 @@ float error = 0;              // Updated in read_sensor_values()
 byte sensor_byte_binary = 0;  // Updated in read_sensor_values()
 int left_motor_speed = 0;     // Updated in motor_control()
 int right_motor_speed = 0;    // Updated in motor_control()
-int initial_motor_speed = 105; //Initial Speed of Motor
+int initial_motor_speed = 108; //Initial Speed of Motor
 
 // PID Constants
 float Kp = 35.96; //35.86
@@ -86,17 +86,7 @@ void loop()
   }
  }
 
-// --- NEW FUNCTION: Send data for Website Graphing ---
-void send_telemetry() {
-  // Format: error,sensor_byte,left_speed,right_speed,initial_speed
-  // This CSV format is easy for Javascript to split using .split(',')
-  // We send a comma-separated string: error, sensor_byte, L_speed, R_speed, Initial_speed
-  Serial.print(error);                Serial.print(",");
-  Serial.print(sensor_byte_binary);   Serial.print(","); // Sends as a decimal number (0-255)
-  Serial.print(left_motor_speed);     Serial.print(",");
-  Serial.print(right_motor_speed);    Serial.print(",");
-  Serial.println(initial_motor_speed); // println adds the '\n' which tells ESP32 the line is done
-}
+
 
 // --- NEW FUNCTION: Receive PID/Speed changes from Website ---
 void check_for_tuning() {
@@ -160,7 +150,7 @@ void read_sensor_values()
     // Check if we've been on black long enough to stop
     if (millis() - blackBoxTimer > 1000) { 
       stop_bot(); 
-      while(1); // Stop forever
+      while(1);
     }
     
     error = 0; // If under 1000ms, just treat as a crossroad (go straight)
@@ -181,29 +171,28 @@ void read_sensor_values()
       potentialGap = true;
     }
 
-    if (millis() - whiteGapTimer < 1000) {
+    if (millis() - whiteGapTimer < 500) {
       error = 0; // "Peek" forward
     } 
     // Out of Time? Hard Turn Phase
     else {
-      if (previous_error < 0) error = -9; 
-      else if (previous_error > 0) error = 9;
+      error = (previous_error < 0) ? 0 : 0;
     }
   }
 
   // CASE C: Sharp 90-degree turns (Optional Pattern Matching)
-  else if (sensor_byte_binary == 0b11100000) { error = -7; } // Sharp Left
-  else if (sensor_byte_binary == 0b00000111) { error = 7; }  // Sharp Right
+  else if (sensor_byte_binary == 0b11100000) { error = -9; } // Sharp Left
+  else if (sensor_byte_binary == 0b00000111) { error = 9; }  // Sharp Right
 
   // CASE E: Sharp exceptional turns (Optional Pattern Matching)
-  else if (sensor_byte_binary == 0b01100000) { error = -5; } // mild Left
-  else if (sensor_byte_binary == 0b00000110) { error = 5; }  // mild Right
+  else if (sensor_byte_binary == 0b01100000) { error = -7; } // mild Left
+  else if (sensor_byte_binary == 0b00000110) { error = 7; }  // mild Right
 
-  else if (sensor_byte_binary == 0b00110000) { error = -3; } // slight Left
-  else if (sensor_byte_binary == 0b00001100) { error = 3; }  // slight Right
+  else if (sensor_byte_binary == 0b00110000) { error = -2; } // slight Left
+  else if (sensor_byte_binary == 0b00001100) { error = 2; }  // slight Right
 
-  else if (sensor_byte_binary == 0b0111000) { error = -5; } // mild Left
-  else if (sensor_byte_binary == 0b00001110) { error = 5; }  // mild Right
+  else if (sensor_byte_binary == 0b01110000) { error = -7; } // mild Left
+  else if (sensor_byte_binary == 0b00001110) { error = 7; }  // mild Right
 
   else if (sensor_byte_binary == 0b11110000) { error = -9; } // Sharp Left
   else if (sensor_byte_binary == 0b00001111) { error = 9; }  // Sharp Right
@@ -219,13 +208,9 @@ void read_sensor_values()
     // Reset ALL flags because we are safely on a line pattern
     blackBoxTimer = 0;
     potentialGap = false;
-    whiteGapTimer = 0;
-
+    
     float total_weight = 0;
     int active_sensors = 0;
-    
-    // Assigning weights from far-left to far-right
-    // L1(-7), L2(-5), L3(-3), L4(-1), R4(1), R3(3), R2(5), R1(7)
     int weights[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
 
     for (int i = 0; i < 8; i++) {
@@ -234,34 +219,30 @@ void read_sensor_values()
         active_sensors++;
       }
     }
-
     if (active_sensors > 0) {
-      error = total_weight / active_sensors; // The smooth PID error
+      error = total_weight / active_sensors;
     }
   }
 
   // Debugging (Keep Serial prints minimal during racing to save speed)
   // Serial.print("Pattern: "); Serial.print(sensor_byte, BIN);
   // Serial.print(" Error: "); Serial.println(error);
- 
-  forward(75);
-
 } 
 
 void calculate_pid() {
-  P = error;
-  I = I + previous_I;
-  D = error - previous_error;
-  PID_value = (Kp * P) + (Ki * I) + (Kd * D);
-  previous_I = I;
-  previous_error = error;
+P = error;
+I = I + previous_I;
+D = error - previous_error;
+PID_value = (Kp * P) + (Ki * I) + (Kd * D);
+previous_I = I;
+previous_error = error;
 }
 
 void motor_control()
 {
   // Calculating the effective motor speed:
-  int left_motor_speed = initial_motor_speed - PID_value;
-  int right_motor_speed = initial_motor_speed + PID_value;
+  left_motor_speed = initial_motor_speed - PID_value;
+  right_motor_speed = initial_motor_speed + PID_value;
 
   // The motor speed should not exceed the max PWM value
   left_motor_speed = constrain(left_motor_speed, -255, 255);
@@ -273,54 +254,57 @@ void motor_control()
     Serial.print("\t");
     Serial.println(right_motor_speed);*/
 
-
-    if(left_motor_speed>0)
+  // LEFT MOTOR DIRECTION
+  if(left_motor_speed >= 0)
   {
-    /*The pin numbers and high, low values might be different depending on your connections */
-    digitalWrite(IN3, HIGH);   
+    digitalWrite(IN3, HIGH);
     digitalWrite(IN4, LOW);
-    analogWrite(ENA,left_motor_speed);
   }
-  else 
+  else
   {
-    /*The pin numbers and high, low values might be different depending on your connections */
-    digitalWrite(IN3, LOW); 
+    digitalWrite(IN3, LOW);
     digitalWrite(IN4, HIGH);
-    analogWrite(ENA, (left_motor_speed));
-    //analogWrite(ENA, abs(left_motor_speed));
   }
-  
- 
-  if(right_motor_speed>0)
+
+
+  // RIGHT MOTOR DIRECTION
+  if(right_motor_speed >= 0)
   {
-    /*The pin numbers and high, low values might be different depending on your connections */
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
-    analogWrite(ENB, right_motor_speed );
   }
-  else 
+  else
   {
-    /*The pin numbers and high, low values might be different depending on your connections */
     digitalWrite(IN1, LOW);
     digitalWrite(IN2, HIGH);
-    analogWrite(ENB, (right_motor_speed));
-    //analogWrite(ENB, (right_motor_speed));
   }
 
-  
-  //following lines of code are to make the bot move forward
+
+  // SPEED CONTROL (PWM)
+  analogWrite(ENA, abs(left_motor_speed));
+  analogWrite(ENB, abs(right_motor_speed));
   
 }
 
+// --- NEW FUNCTION: Send data for Website Graphing ---
+void send_telemetry() {
+  // Format: error,sensor_byte,left_speed,right_speed,initial_speed
+  // This CSV format is easy for Javascript to split using .split(',')
+  // We send a comma-separated string: error, sensor_byte, L_speed, R_speed, Initial_speed
+  Serial.print(error);                Serial.print(",");
+  Serial.print(sensor_byte_binary);   Serial.print(","); // Sends as a decimal number (0-255)
+  Serial.print(left_motor_speed);     Serial.print(",");
+  Serial.print(right_motor_speed);    Serial.print(",");
+  Serial.println(initial_motor_speed); // println adds the '\n' which tells ESP32 the line is done
+}
 
-void forward(int s)
+void forward()
 {
   /*The pin numbers and high, low values might be different depending on your connections */
   digitalWrite(IN3,HIGH);
   digitalWrite(IN4,LOW);
   digitalWrite(IN1,HIGH);
   digitalWrite(IN2,LOW);
-  setspeed(s);
   
 }
 void reverse()
