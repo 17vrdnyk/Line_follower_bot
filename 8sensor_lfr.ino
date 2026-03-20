@@ -171,12 +171,12 @@ void read_sensor_values()
       potentialGap = true;
     }
 
-    if (millis() - whiteGapTimer < 500) {
+    if (millis() - whiteGapTimer < 1000) {
       error = 0; // "Peek" forward
     } 
     // Out of Time? Hard Turn Phase
     else {
-      error = (previous_error < 0) ? -9 : 9;
+      error = (previous_error < 0) ? 0 : 0;
     }
   }
 
@@ -214,7 +214,7 @@ void read_sensor_values()
     
     float total_weight = 0;
     int active_sensors = 0;
-    int weights[8] = {-7, -5, -3, -1, 1, 3, 5, 7};
+    int weights[8] = {-8, -6, -4, -2, 2, 4, 6, 8};
 
     for (int i = 0; i < 8; i++) {
       if (s[i] == w) {
