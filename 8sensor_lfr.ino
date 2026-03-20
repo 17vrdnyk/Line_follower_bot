@@ -188,26 +188,35 @@ void read_sensor_values()
   // CASE E: Sharp exceptional turns (Optional Pattern Matching)
   //else if (sensor_byte_binary == 0b00011000) { error = 0; }  // straight
 
-  else if (sensor_byte_binary == 0b01100000) { error = -5; } // mild Left
-  else if (sensor_byte_binary == 0b00000110) { error = 5; }  // mild Right
+  else if (sensor_byte_binary == 0b01100000) { error = -8; } // mild Left
+  else if (sensor_byte_binary == 0b00000110) { error = 8; }  // mild Right
 
-  else if (sensor_byte_binary == 0b00110000) { error = -2; } // slight Left
-  else if (sensor_byte_binary == 0b00001100) { error = 2; }  // slight Right
+  else if (sensor_byte_binary == 0b00110000) { error = -5; } // slight Left
+  else if (sensor_byte_binary == 0b00001100) { error = 5; }  // slight Right
 
-  else if (sensor_byte_binary == 0b01110000) { error = -5; } // mild Left
-  else if (sensor_byte_binary == 0b00001110) { error = 5; }  // mild Right
+  else if (sensor_byte_binary == 0b01110000) { error = -8; } // mild Left
+  else if (sensor_byte_binary == 0b00001110) { error = 8; }  // mild Right
+  
 
-  else if (sensor_byte_binary == 0b11110000) { error = -9; } // Sharp Left
-  else if (sensor_byte_binary == 0b00001111) { error = 9; }  // Sharp Right
+  else if (sensor_byte_binary == 0b01111000) { error = -8; } // mild Left
+  else if (sensor_byte_binary == 0b00011110) { error = 8; }  // mild Right
 
   //else if (sensor_byte_binary == 0b01101000) { error = -3; } // Sharp Left
   //else if (sensor_byte_binary == 0b00010110) { error = 3; }  // Sharp Right
 
+  else if (sensor_byte_binary == 0b11110000) { error = -9; } // Sharp Left
+  else if (sensor_byte_binary == 0b00001111) { error = 9; }  // Sharp Right
+
   else if (sensor_byte_binary == 0b11111000) { error = -9; } // mild Left
   else if (sensor_byte_binary == 0b00011111) { error = 9; }  // mild Right
 
-  else if (sensor_byte_binary == 0b01111000) { error = -8; } // mild Left
-  else if (sensor_byte_binary == 0b00011110) { error = 8; }  // mild Right
+  else if (sensor_byte_binary == 0b11111100) { error = -10; } // mild Left
+  else if (sensor_byte_binary == 0b00111111) { error = 10; }  // mild Right
+
+  else if (sensor_byte_binary == 0b11111110) { error = -10; } // mild Left
+  else if (sensor_byte_binary == 0b01111111) { error = 10; }  // mild Right
+
+
 
   // CASE D: Normal Line Following (Weighted Average)
   else {
