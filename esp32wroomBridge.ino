@@ -1,3 +1,4 @@
+
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -35,7 +36,13 @@ void setup() {
   Serial.begin(115200);
   Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2);
 
+  // --- WiFi Power Optimization ---
+  WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
+  
+  // Lowering TX Power helps prevent power-surge resets from motors
+  // WIFI_POWER_8_5dBm is usually enough for a 5-10 meter range
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
   
   ws.onEvent(onEvent);
   server.addHandler(&ws);
@@ -45,9 +52,25 @@ void setup() {
 }
 
 void loop() {
-  if (Serial2.available()) {
-    String data = Serial2.readStringUntil('\n');
-    ws.textAll(data); // Broadcast LFR data to all connected web pages
+  // Check how many devices are connected to the ESP32
+  int connectedClients = WiFi.softAPgetStationNum();
+
+  if (connectedClients > 0) {
+    // ACTIVE MODE: Only process Serial data if someone is connected
+    if (Serial2.available()) {
+      String data = Serial2.readStringUntil('\n');
+      ws.textAll(data); 
+    }
+  } else {
+    // IDLE MODE: Clear the Serial buffer so it doesn't get "clogged" 
+    // while no one is watching, but don't broadcast anything.
+    while(Serial2.available()) {
+      Serial2.read(); 
+    }
   }
+
   ws.cleanupClients();
+  
+  // Tiny delay to keep the CPU from running at 100% and heating up
+  delay(1); 
 }
