@@ -21,12 +21,12 @@ const int PIN_R1 = 8; // Right Outer (VN pin)
 // Motors
 // Left Motor
 const int ENA = 9; // PWM Pin
-const int IN1 = A0;
-const int IN2 = A1;
+const int IN1 = A1;
+const int IN2 = A2;
 // Right Motor
 const int ENB = 10; // PWM Pin
-const int IN3 = A2;
-const int IN4 = A3;
+const int IN3 = A3;
+const int IN4 = A4;
 
 // --- Shared Global Variables for Telemetry ---
 float error = 0;              // Updated in read_sensor_values()
@@ -176,7 +176,7 @@ void read_sensor_values()
     } 
     // Out of Time? Hard Turn Phase
     else {
-      error = (previous_error < 0) ? 0 : 0;
+      error = (previous_error < 0) ? -9 : 9;
     }
   }
 
@@ -226,8 +226,6 @@ void read_sensor_values()
       error = total_weight / active_sensors;
     }
   }
-
-  //forward();
   // Debugging (Keep Serial prints minimal during racing to save speed)
   // Serial.print("Pattern: "); Serial.print(sensor_byte, BIN);
   // Serial.print(" Error: "); Serial.println(error);
@@ -258,21 +256,21 @@ void motor_control()
     Serial.print("\t");
     Serial.println(right_motor_speed);*/
 
-  // LEFT MOTOR DIRECTION
-  if(left_motor_speed >= 0)
-  {
-    digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
-  }
-  else
+  // RIGHT MOTOR DIRECTION
+  if( right_motor_speed> 0)
   {
     digitalWrite(IN3, LOW);
     digitalWrite(IN4, HIGH);
   }
+  else
+  {
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  }
 
 
-  // RIGHT MOTOR DIRECTION
-  if(right_motor_speed >= 0)
+  // LEFT MOTOR DIRECTION
+  if(left_motor_speed > 0)
   {
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
@@ -285,8 +283,8 @@ void motor_control()
 
 
   // SPEED CONTROL (PWM)
-  analogWrite(ENB, abs(left_motor_speed));
-  analogWrite(ENA, abs(right_motor_speed));
+  analogWrite(ENA, abs(left_motor_speed));
+  analogWrite(ENB, abs(right_motor_speed));
   
 }
 
