@@ -94,7 +94,7 @@ void check_for_tuning() {
     String input = Serial.readStringUntil('\n');
     input.trim(); // Remove any hidden whitespace or \r
 
-    if (input.startsWith("P")) {
+    if (input.startsWith("P") && input.length() > 5) {
        int comma1 = input.indexOf(',');
        int comma2 = input.indexOf(',', comma1 + 1);
        int comma3 = input.indexOf(',', comma2 + 1);
@@ -180,11 +180,14 @@ void read_sensor_values()
     }
   }
 
+  /*
   // CASE C: Sharp 90-degree turns (Optional Pattern Matching)
   else if (sensor_byte_binary == 0b11100000) { error = -9; } // Sharp Left
   else if (sensor_byte_binary == 0b00000111) { error = 9; }  // Sharp Right
 
   // CASE E: Sharp exceptional turns (Optional Pattern Matching)
+  else if (sensor_byte_binary == 0b00011000) { error = 0; }  // straight
+
   else if (sensor_byte_binary == 0b01100000) { error = -7; } // mild Left
   else if (sensor_byte_binary == 0b00000110) { error = 7; }  // mild Right
 
@@ -202,7 +205,7 @@ void read_sensor_values()
 
   else if (sensor_byte_binary == 0b01111000) { error = -5; } // mild Left
   else if (sensor_byte_binary == 0b00011110) { error = 5; }  // mild Right
-
+*/
   // CASE D: Normal Line Following (Weighted Average)
   else {
     // Reset ALL flags because we are safely on a line pattern
@@ -282,8 +285,8 @@ void motor_control()
 
 
   // SPEED CONTROL (PWM)
-  analogWrite(ENA, abs(left_motor_speed));
-  analogWrite(ENB, abs(right_motor_speed));
+  analogWrite(ENB, abs(left_motor_speed));
+  analogWrite(ENA, abs(right_motor_speed));
   
 }
 
@@ -292,11 +295,15 @@ void send_telemetry() {
   // Format: error,sensor_byte,left_speed,right_speed,initial_speed
   // This CSV format is easy for Javascript to split using .split(',')
   // We send a comma-separated string: error, sensor_byte, L_speed, R_speed, Initial_speed
-  Serial.print(error);                Serial.print(",");
-  Serial.print(sensor_byte_binary);   Serial.print(","); // Sends as a decimal number (0-255)
-  Serial.print(left_motor_speed);     Serial.print(",");
-  Serial.print(right_motor_speed);    Serial.print(",");
-  Serial.println(initial_motor_speed); // println adds the '\n' which tells ESP32 the line is done
+  // Only send if the Serial buffer has enough space. 
+  // This prevents the Arduino from "waiting/hanging" for the ESP32.
+  if (Serial.availableForWrite() > 32) {
+    Serial.print(error);                Serial.print(",");
+    Serial.print(sensor_byte_binary);   Serial.print(","); // Sends as a decimal number (0-255)
+    Serial.print(left_motor_speed);     Serial.print(",");
+    Serial.print(right_motor_speed);    Serial.print(",");
+    Serial.println(initial_motor_speed); // println adds the '\n' which tells ESP32 the line is done
+  }
 }
 
 void forward()
