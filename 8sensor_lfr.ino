@@ -33,7 +33,7 @@ float error = 0;              // Updated in read_sensor_values()
 byte sensor_byte_binary = 0;  // Updated in read_sensor_values()
 int left_motor_speed = 0;     // Updated in motor_control()
 int right_motor_speed = 0;    // Updated in motor_control()
-int initial_motor_speed = 108; //Initial Speed of Motor
+int initial_motor_speed = 80; //Initial Speed of Motor
 
 // PID Constants
 float Kp = 35.96; //35.86
@@ -171,12 +171,12 @@ void read_sensor_values()
       potentialGap = true;
     }
 
-    if (millis() - whiteGapTimer < 1000) {
+    if (millis() - whiteGapTimer < 1350) {
       error = 0; // "Peek" forward
     } 
     // Out of Time? Hard Turn Phase
     else {
-      error = (previous_error < 0) ? 0 : 0;
+      error = (previous_error < 0) ? 10 : 10;
     }
   }
 
@@ -202,10 +202,10 @@ void read_sensor_values()
 
   else if (sensor_byte_binary == 0b01101000) { error = -3; } // Sharp Left
   else if (sensor_byte_binary == 0b00010110) { error = 3; }  // Sharp Right
-
-  else if (sensor_byte_binary == 0b01111000) { error = -5; } // mild Left
-  else if (sensor_byte_binary == 0b00011110) { error = 5; }  // mild Right
 */
+  else if (sensor_byte_binary == 0b01111000) { error = -4; } // mild Left
+  else if (sensor_byte_binary == 0b00011110) { error = 4; }  // mild Right
+
   // CASE D: Normal Line Following (Weighted Average)
   else {
     // Reset ALL flags because we are safely on a line pattern
