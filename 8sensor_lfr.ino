@@ -224,6 +224,7 @@ void read_sensor_values()
     }
   }
 
+  //forward();
   // Debugging (Keep Serial prints minimal during racing to save speed)
   // Serial.print("Pattern: "); Serial.print(sensor_byte, BIN);
   // Serial.print(" Error: "); Serial.println(error);
@@ -354,10 +355,4 @@ void stop_bot()
   digitalWrite(IN4, LOW);
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
-}
-
-void setspeed(int Speed)
-{
-  analogWrite(ENA,Speed);
-  analogWrite(ENB,Speed);  
 }
