@@ -171,12 +171,12 @@ void read_sensor_values()
       potentialGap = true;
     }
 
-    if (millis() - whiteGapTimer < 1350) {
+    if (millis() - whiteGapTimer < 1750) {
       error = 0; // "Peek" forward
     } 
     // Out of Time? Hard Turn Phase
     else {
-      error = (previous_error < 0) ? 10 : 10;
+      error = 9;
     }
   }
 
@@ -202,10 +202,10 @@ void read_sensor_values()
 
   else if (sensor_byte_binary == 0b01101000) { error = -3; } // Sharp Left
   else if (sensor_byte_binary == 0b00010110) { error = 3; }  // Sharp Right
-*/
+
   else if (sensor_byte_binary == 0b01111000) { error = -4; } // mild Left
   else if (sensor_byte_binary == 0b00011110) { error = 4; }  // mild Right
-
+*/
   // CASE D: Normal Line Following (Weighted Average)
   else {
     // Reset ALL flags because we are safely on a line pattern
@@ -214,7 +214,7 @@ void read_sensor_values()
     
     float total_weight = 0;
     int active_sensors = 0;
-    int weights[8] = {-8, -6, -4, -2, 2, 4, 6, 8};
+    int weights[8] = {-8, -5, -2, 0, 0, 2, 5, 8};
 
     for (int i = 0; i < 8; i++) {
       if (s[i] == w) {
