@@ -8,8 +8,8 @@ const char* password = "12345678";
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
-#define RXD2 16
-#define TXD2 17
+#define RXD2 3
+#define TXD2 1
 
 void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_DATA) {
@@ -63,7 +63,7 @@ void loop() {
   } else {
     // IDLE MODE: Clear the Serial buffer so it doesn't get "clogged" 
     // while no one is watching, but don't broadcast anything.
-    while(Serial2.available()) {
+    while(Serial2.available()>0) {
       Serial2.read(); 
     }
   }
@@ -73,3 +73,4 @@ void loop() {
   // Tiny delay to keep the CPU from running at 100% and heating up
   delay(1); 
 }
+
